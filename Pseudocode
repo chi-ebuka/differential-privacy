@@ -1,0 +1,60 @@
+### Pseudocode for Algorithms
+
+```plaintext
+1. Start
+
+2. Check and Load Dataset
+   IF file does not exist THEN
+       Prompt user to upload the dataset
+       Load the uploaded dataset
+   ELSE
+       Load the existing dataset
+   END IF
+
+3. Define Differential Privacy Parameters
+   SET epsilon = 1.0
+   SET sensitivity = 1.0
+
+4. Add Laplace Noise Function
+   FUNCTION add_laplace_noise(value, sensitivity, epsilon)
+       SET scale = sensitivity / epsilon
+       GENERATE noise from Laplace distribution with mean 0 and scale
+       RETURN value + noise
+   END FUNCTION
+
+5. Apply Differential Privacy
+   SET columns_to_anonymize = ['Age', 'BMI', 'PhysicalActivity', 'DietQuality', 'SleepQuality', 
+                               'PollutionExposure', 'PollenExposure', 'DustExposure', 
+                               'LungFunctionFEV1', 'LungFunctionFVC']
+
+   FOR each column in columns_to_anonymize DO
+       IF column exists in dataset THEN
+           APPLY add_laplace_noise to each non-null value in the column
+           STORE results in new column with '_noisy' suffix
+       END IF
+   END FOR
+
+6. Save Anonymized Dataset
+   SAVE anonymized dataset as 'healthcare_dataset_anonymized_dp.csv'
+
+7. Plot Histograms
+   FUNCTION plot_histograms(original, noisy, column_name)
+       CREATE side-by-side histogram of original and noisy data
+       SAVE side-by-side histogram image
+
+       CREATE combined histogram of original and noisy data
+       SAVE combined histogram image
+   END FUNCTION
+
+   FOR each column in columns_to_anonymize DO
+       CALL plot_histograms(original_column, noisy_column, column_name)
+   END FOR
+
+8. List Files and Check Anonymized File
+   LIST all files in the current directory
+   IF anonymized file exists THEN
+       PROVIDE download link for anonymized file
+   END IF
+
+9. End
+```
