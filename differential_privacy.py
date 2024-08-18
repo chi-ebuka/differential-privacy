@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 import os
-from google.colab import files
 import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from google.colab import files
 
 # Define the filename
 filename = 'asthma_disease_dataset.csv'
@@ -41,55 +43,67 @@ for column in columns_to_add_dp:
 # Save the dp dataset with differential privacy
 dp_filename = 'asthma_disease_dataset_dp.csv'
 asthma_disease_data.to_csv(dp_filename, index=False)
-
 print(f"Dataset with differential privacy saved as '{dp_filename}'")
 
-# Function to plot histograms side by side and combined
-def plot_histograms(original, noisy, column_name):
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(15, 5))
-    
-    axes[0].hist(original, bins=20, alpha=0.7, label=f'Original {column_name}', color='blue')
-    axes[0].set_title(f'Original {column_name}')
-    axes[0].set_xlabel(column_name)
-    axes[0].set_ylabel('Frequency')
-    
-    axes[1].hist(noisy, bins=20, alpha=0.7, label=f'Noisy {column_name}', color='orange')
-    axes[1].set_title(f'Noisy {column_name}')
-    axes[1].set_xlabel(column_name)
-    axes[1].set_ylabel('Frequency')
-    
-    plt.suptitle(f'Comparison of Original and Noisy {column_name} Histograms (Side by Side)')
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.show()
-    # Save the figure
-    fig.savefig(f'{column_name}_histogram_side_by_side.png')
-    
-    # Combined histogram
-    plt.figure(figsize=(10, 5))
-    plt.hist(original, bins=20, alpha=0.5, label=f'Original {column_name}', color='blue')
-    plt.hist(noisy, bins=20, alpha=0.5, label=f'Noisy {column_name}', color='orange')
-    plt.xlabel(column_name)
-    plt.ylabel('Frequency')
-    plt.legend(loc='upper right')
-    plt.title(f'Combined Histogram of Original and Noisy {column_name}')
-    plt.show()
-    # Save the figure
-    plt.savefig(f'{column_name}_histogram_combined.png')
+# If there's no target column, simply work with features
+X_original = asthma_disease_data[columns_to_add_dp]
+X_dp = asthma_disease_data[[col + '_noisy' for col in columns_to_add_dp]]
 
-# Plot histograms for all columns with differential privacy
+# Calculate utility metrics to compare original and DP data
+mae_values = {}
+rmse_values = {}
+r2_values = {}
+
 for column in columns_to_add_dp:
-    plot_histograms(asthma_disease_data[column], asthma_disease_data[column + '_noisy'], column)
+    mae = mean_absolute_error(X_original[column], X_dp[column + '_noisy'])
+    rmse = np.sqrt(mean_squared_error(X_original[column], X_dp[column + '_noisy']))
+    r2 = r2_score(X_original[column], X_dp[column + '_noisy'])
+    
+    mae_values[column] = mae
+    rmse_values[column] = rmse
+    r2_values[column] = r2
 
-# List all files in the current directory
-files = os.listdir('.')
-print("Files in the current directory:")
-for file in files:
-    print(file)
+print("\nUtility Metrics:")
+print("Mean Absolute Error (MAE):", mae_values)
+print("Root Mean Squared Error (RMSE):", rmse_values)
+print("R-squared (R²):", r2_values)
 
-# Check if the dp file exists and provide download link
-if os.path.isfile(dp_filename):
-    print(f"{dp_filename} found.")
-    # Download the file
-    files.download(dp_filename)
-else:
-    print(f"{dp_filename} not found.")
+# 1. Plot density comparisons for key features
+for column in columns_to_add_dp:
+    plt.figure(figsize=(12, 6))
+    sns.kdeplot(X_original[column], label=f'Original {column}', color='blue')
+    sns.kdeplot(X_dp[column+'_noisy'], label=f'DP {column}', color='orange')
+    plt.title(f'Density Plot Comparison - {column}')
+    plt.xlabel(column)
+    plt.ylabel('Density')
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+# 2. Bar Plot of MAE and RMSE - Side by Side
+features = list(mae_values.keys())
+x = np.arange(len(features))  # the label locations
+width = 0.35  # the width of the bars
+
+plt.figure(figsize=(12, 6))
+plt.bar(x - width/2, mae_values.values(), width, label='MAE', color='blue')
+plt.bar(x + width/2, rmse_values.values(), width, label='RMSE', color='orange')
+plt.xlabel('Features')
+plt.ylabel('Error Value')
+plt.title('Comparison of MAE and RMSE between Original and DP Datasets')
+plt.xticks(x, features, rotation=45)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+# 3. Line Plot of R-squared (R²) Values
+plt.figure(figsize=(12, 6))
+plt.plot(features, r2_values.values(), marker='o', color='green', label='R²')
+plt.xlabel('Features')
+plt.ylabel('R² Value')
+plt.title('R² Comparison between Original and DP Datasets')
+plt.xticks(rotation=45)
+plt.axhline(y=1, color='gray', linestyle='--', label='Perfect Preservation')
+plt.legend()
+plt.tight_layout()
+plt.show()
